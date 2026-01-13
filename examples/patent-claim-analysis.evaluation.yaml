@@ -1,0 +1,275 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/evaluationlanguage/schema/v0.1.0/schema.json
+#
+# Example evaluation result for Patent Novelty Assessment
+# Demonstrates structured results with proof chains for IP analysis
+#
+title: Novelty Assessment - Smart Thermostat Patent Application
+instructionsId: 00000000-0000-0000-0000-000000000001
+instructionsVersion: 1
+status: completed
+visibility: public
+schemaVersion: "0.1.0"
+steps:
+  - stepIndex: 0
+    stepName: Identify and classify prior art documents
+    status: pass
+    result: Identified 4 prior art documents relevant to the smart thermostat application.
+    structuredResult:
+      type: table
+      data:
+        headers:
+          - document
+          - publicationDate
+          - title
+          - category
+          - relevance
+        rows:
+          - cells:
+              - US 8,219,249 B2 (D1)
+              - "2012-07-10"
+              - Programmable Thermostat with Remote Access
+              - X
+              - Discloses programmable thermostat with WiFi connectivity and smartphone app control
+          - cells:
+              - EP 2,453,178 A1 (D2)
+              - "2012-05-16"
+              - Energy Management System with Occupancy Detection
+              - Y
+              - Discloses occupancy sensors for HVAC control but not learning algorithms
+          - cells:
+              - US 2011/0307103 A1 (D3)
+              - "2011-12-15"
+              - Machine Learning for Building Energy Optimization
+              - Y
+              - Discloses learning algorithms for energy systems but not thermostat-specific
+          - cells:
+              - WO 2010/045624 A1 (D4)
+              - "2010-04-22"
+              - HVAC Control Systems Overview
+              - A
+              - General background on HVAC control technology
+      summary: 1 X-category, 2 Y-category, and 1 A-category documents identified
+    proof:
+      source: USPTO and Espacenet patent databases, searched 2026-01-10
+      reasoning: |
+        D1 is categorized as X because it anticipates several core features of the application.
+        D2 and D3 are Y-category as their combination could render claims obvious. D4 provides
+        only general background without specific relevance to the claimed invention.
+
+  - stepIndex: 1
+    stepName: Extract independent claims
+    status: pass
+    result: Extracted 2 independent claims from the application.
+    structuredResult:
+      type: array
+      data:
+        - claimNumber: 1
+          claimText: |
+            A smart thermostat comprising: a temperature sensor; a WiFi communication module;
+            a processor configured to execute a machine learning algorithm that learns user
+            preferences from historical temperature settings; an occupancy detection sensor;
+            and a display showing energy consumption data, characterized in that the machine
+            learning algorithm predicts optimal temperature setpoints based on both occupancy
+            patterns and external weather forecast data.
+          claimType: apparatus
+          technicalFeatures:
+            - Temperature sensor
+            - WiFi communication module
+            - Processor with machine learning algorithm
+            - Learning from historical temperature settings
+            - Occupancy detection sensor
+            - Energy consumption display
+            - Prediction based on occupancy patterns
+            - Integration with external weather forecast data
+        - claimNumber: 8
+          claimText: |
+            A method for controlling building temperature comprising: collecting temperature
+            preference data over time; detecting occupancy patterns using sensors; receiving
+            weather forecast data from an external service; and automatically adjusting
+            temperature setpoints using a machine learning model trained on the collected
+            preference data, occupancy patterns, and weather forecasts.
+          claimType: method
+          technicalFeatures:
+            - Collecting temperature preference data
+            - Detecting occupancy patterns
+            - Receiving external weather forecast data
+            - Machine learning model for setpoint adjustment
+            - Training on combined preference, occupancy, and weather data
+      summary: 2 independent claims - apparatus (claim 1) and method (claim 8)
+    proof:
+      source: Patent Application US 2024/0198765, Claims section
+      quote: |
+        Claim 1: "A smart thermostat comprising: a temperature sensor; a WiFi communication
+        module; a processor configured to execute a machine learning algorithm..."
+      reasoning: Claims 1 and 8 are independent claims with distinct scope (apparatus vs method).
+
+  - stepIndex: 2
+    stepName: Map claim elements to prior art disclosures
+    status: pass
+    result: Completed feature mapping for all technical features of independent claims.
+    structuredResult:
+      type: table
+      data:
+        headers:
+          - claimNumber
+          - feature
+          - priorArtDoc
+          - disclosure
+          - disclosureType
+        rows:
+          - cells:
+              [1, "Temperature sensor", "D1", "Col. 3, lines 12-18", "explicit"]
+          - cells:
+              [
+                1,
+                "WiFi communication module",
+                "D1",
+                "Col. 4, lines 5-22",
+                "explicit",
+              ]
+          - cells:
+              [
+                1,
+                "Processor with ML algorithm",
+                "D1+D3",
+                "D1 Col.5; D3 [0045]",
+                "implicit",
+              ]
+          - cells:
+              [
+                1,
+                "Learning from historical settings",
+                "D1",
+                "Col. 5, lines 30-45",
+                "explicit",
+              ]
+          - cells:
+              [
+                1,
+                "Occupancy detection sensor",
+                "D2",
+                "[0032]-[0038]",
+                "explicit",
+              ]
+          - cells:
+              [
+                1,
+                "Energy consumption display",
+                "D1",
+                "Col. 6, lines 1-15",
+                "explicit",
+              ]
+          - cells:
+              [
+                1,
+                "Prediction based on occupancy",
+                "D2",
+                "[0041]-[0048]",
+                "explicit",
+              ]
+          - cells: [1, "Weather forecast integration", "-", "-", "not found"]
+          - cells:
+              [
+                8,
+                "Collecting preference data",
+                "D1",
+                "Col. 5, lines 30-45",
+                "explicit",
+              ]
+          - cells:
+              [
+                8,
+                "Detecting occupancy patterns",
+                "D2",
+                "[0032]-[0038]",
+                "explicit",
+              ]
+          - cells: [8, "External weather forecast data", "-", "-", "not found"]
+          - cells: [8, "Combined ML model training", "-", "-", "not found"]
+      summary: |
+        Weather forecast integration and combined ML model training not disclosed in prior art
+    proof:
+      source: Prior art documents D1-D4
+      quote: |
+        D1 Col. 4, lines 5-22: "The thermostat includes a wireless communication module
+        conforming to IEEE 802.11 standards enabling connection to a home network..."
+      reasoning: |
+        Most features are disclosed in D1 or D2 individually. The key distinguishing
+        features are the integration of external weather forecast data and the combined
+        ML model that learns from preference, occupancy, AND weather data together.
+
+  - stepIndex: 3
+    stepName: Determine novelty and inventive step assessment
+    status: pass
+    result: Both independent claims are novel and inventive.
+    structuredResult:
+      type: array
+      data:
+        - claimNumber: 1
+          noveltyAssessment: novel
+          inventiveStepAssessment: inventive
+          closestPriorArt: US 8,219,249 B2 (D1)
+          distinguishingFeatures:
+            - Integration with external weather forecast data
+            - ML prediction combining occupancy AND weather forecasts
+          reasoning: |
+            D1 discloses most features but lacks weather forecast integration.
+            D2 adds occupancy detection. D3 teaches ML for energy systems.
+            However, no document or combination teaches the specific combination
+            of predicting setpoints based on BOTH occupancy patterns AND weather
+            forecasts. The synergistic effect of combining these data sources
+            for prediction would not be obvious as D3's ML approach does not
+            suggest this specific combination.
+        - claimNumber: 8
+          noveltyAssessment: novel
+          inventiveStepAssessment: inventive
+          closestPriorArt: US 8,219,249 B2 (D1)
+          distinguishingFeatures:
+            - Receiving external weather forecast data
+            - Training ML model on combined preference, occupancy, and weather data
+          reasoning: |
+            Method claim 8 includes the novel step of training an ML model on the
+            combination of three data sources. While individual elements exist in
+            prior art, the combination achieves a technical effect (improved
+            prediction accuracy) that would not be obvious from the cited documents.
+      summary: Both claims novel and inventive due to weather forecast integration
+    proof:
+      source: EPO Guidelines for Examination, Part G, Chapter VII
+      reasoning: |
+        Applying the problem-solution approach: The objective technical problem is
+        "how to improve temperature setpoint prediction accuracy." The solution of
+        combining weather forecast data with occupancy patterns in an ML model is
+        not suggested by any of the cited documents alone or in combination.
+
+  - stepIndex: 4
+    stepName: Generate overall assessment summary
+    status: pass
+    result: Patent application is patentable in its current form.
+    structuredResult:
+      type: object
+      data:
+        overallAssessment: patentable
+        xCategoryCount: 1
+        yCategoryCount: 2
+        novelClaimsCount: 2
+        inventiveClaimsCount: 2
+        recommendedAmendments: []
+        summary: |
+          The smart thermostat application contains patentable subject matter. Both
+          independent claims (1 and 8) are novel over the cited prior art and involve
+          an inventive step. The key distinguishing feature - integration of external
+          weather forecast data combined with occupancy-based learning - is not
+          disclosed or suggested by the prior art. While D1 is highly relevant
+          (X-category) for many features, it does not anticipate the claims. The
+          combination of D2 and D3 (Y-category documents) does not render the claims
+          obvious as neither document suggests combining weather data with occupancy
+          patterns for ML-based prediction. No amendments are recommended at this stage.
+      summary: Patentable - distinguishing features provide novelty and inventive step
+    proof:
+      source: Analysis of claims 1 and 8 against D1, D2, D3, and D4
+      reasoning: |
+        The X-category document D1 anticipates most features but not the weather
+        integration. The Y-category combination of D2+D3 addresses occupancy and ML
+        separately but does not teach their combination with weather data. Following
+        EPO examination practice, the claims meet both the novelty requirement
+        (Art. 54 EPC) and inventive step requirement (Art. 56 EPC).

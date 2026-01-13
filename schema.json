@@ -1,0 +1,811 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/evaluationlanguage/schema/v0.1.0/schema.json",
+  "title": "EvaL Schema",
+  "description": "EvaL (Evaluation Language) Schema v0.1.0 - Unified schema for evaluation instructions and results with attachment support",
+
+  "$defs": {
+    "Checksum": {
+      "type": "object",
+      "description": "Cryptographic checksum for file integrity verification",
+      "required": ["algorithm", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": {
+          "type": "string",
+          "enum": ["SHA-256"],
+          "description": "Hash algorithm used"
+        },
+        "value": {
+          "type": "string",
+          "description": "Hex-encoded hash value (64 characters for SHA-256)",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      }
+    },
+
+    "Attachment": {
+      "type": "object",
+      "description": "File attachment with metadata for evidence or supporting documents",
+      "required": ["id", "filename", "mimeType", "size", "checksum", "uploadedAt"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Attachment unique identifier",
+          "x-ui-order": 1
+        },
+        "filename": {
+          "type": "string",
+          "description": "Original filename",
+          "minLength": 1,
+          "maxLength": 255,
+          "x-ui-order": 2
+        },
+        "mimeType": {
+          "type": "string",
+          "description": "MIME type (e.g., 'application/pdf', 'image/png')",
+          "minLength": 1,
+          "maxLength": 100,
+          "x-ui-order": 3
+        },
+        "size": {
+          "type": "integer",
+          "description": "File size in bytes (max 100MB)",
+          "minimum": 1,
+          "maximum": 104857600,
+          "x-ui-order": 4
+        },
+        "checksum": {
+          "$ref": "#/$defs/Checksum",
+          "description": "File integrity checksum",
+          "x-ui-order": 5
+        },
+        "uploadedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Upload timestamp (ISO 8601)",
+          "x-ui-order": 6
+        },
+        "uploadedById": {
+          "type": "string",
+          "format": "uuid",
+          "description": "User ID who uploaded the attachment (uses 'uploadedBy' vs Comment's 'author' since uploader didn't create the file content)",
+          "x-ui-order": 7
+        },
+        "uploadedByName": {
+          "type": "string",
+          "description": "Display name of uploader (optional, for portable exports)",
+          "maxLength": 100,
+          "x-ui-order": 8
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional description of the attachment",
+          "maxLength": 500,
+          "x-ui-widget": "textarea",
+          "x-ui-order": 9
+        },
+        "path": {
+          "type": "string",
+          "description": "Relative path to file (export only, not stored in database)",
+          "maxLength": 512,
+          "x-ui-hidden": true
+        }
+      }
+    },
+
+    "AttachmentRef": {
+      "type": "object",
+      "description": "Reference to an attachment with optional context for proof linking",
+      "required": ["attachmentId"],
+      "additionalProperties": false,
+      "properties": {
+        "attachmentId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID of the referenced attachment"
+        },
+        "pageRange": {
+          "type": "string",
+          "description": "Page range reference (e.g., '1-5', '42', '1,3,5-10')",
+          "maxLength": 50,
+          "pattern": "^[0-9]+([,-][0-9]+)*$"
+        },
+        "highlight": {
+          "type": "string",
+          "description": "Text to highlight or section reference",
+          "maxLength": 500
+        }
+      }
+    },
+
+    "Step": {
+      "type": "object",
+      "description": "A single evaluation step with proof requirements",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "x-ui-widget": "text",
+          "x-ui-placeholder": "Step name",
+          "x-ui-order": 1
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 2000,
+          "x-ui-widget": "textarea",
+          "x-ui-placeholder": "What should be evaluated in this step?",
+          "x-ui-order": 2
+        },
+        "proofRequirement": {
+          "type": "string",
+          "maxLength": 1000,
+          "x-ui-widget": "textarea",
+          "x-ui-placeholder": "What evidence should be collected?",
+          "x-ui-help": "Describe what proof or evidence the AI should collect for this step",
+          "x-ui-order": 3
+        },
+        "resultSchema": {
+          "$ref": "#/$defs/ResultSchema",
+          "description": "JSON Schema defining the expected structure for step results",
+          "x-ui-widget": "json-editor",
+          "x-ui-help": "Define expected result fields. If not specified, result will be plain text.",
+          "x-ui-order": 4
+        },
+        "requiresUserInput": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this step requires user input before proceeding",
+          "x-ui-widget": "toggle",
+          "x-ui-help": "Enable to signal the AI should pause and ask the user for input",
+          "x-ui-order": 5
+        }
+      }
+    },
+
+    "ResultSchema": {
+      "type": "object",
+      "description": "Schema definition for structured step results",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "string",
+            "number",
+            "boolean",
+            "enum",
+            "object",
+            "array",
+            "table"
+          ],
+          "description": "The primary result data type",
+          "default": "string"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of what this result represents",
+          "maxLength": 500
+        },
+        "enumValues": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Allowed values for enum type",
+          "maxItems": 20
+        },
+        "properties": {
+          "type": "object",
+          "description": "Field definitions for object type",
+          "additionalProperties": { "$ref": "#/$defs/FieldSchema" }
+        },
+        "required": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Required field names for object type"
+        },
+        "items": {
+          "$ref": "#/$defs/FieldSchema",
+          "description": "Item schema for array type"
+        },
+        "columns": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ColumnSchema" },
+          "description": "Column definitions for table type"
+        },
+        "rendering": {
+          "$ref": "#/$defs/RenderingHint",
+          "description": "How to render this result in the UI"
+        }
+      }
+    },
+
+    "FieldSchema": {
+      "type": "object",
+      "description": "Schema for a single field in object or array types",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["string", "number", "boolean", "enum", "object", "array"],
+          "description": "Field data type"
+        },
+        "description": {
+          "type": "string",
+          "description": "Field description",
+          "maxLength": 500
+        },
+        "enumValues": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Allowed values for enum fields"
+        },
+        "properties": {
+          "type": "object",
+          "description": "Nested properties for object type",
+          "additionalProperties": { "$ref": "#/$defs/FieldSchema" }
+        },
+        "items": {
+          "$ref": "#/$defs/FieldSchema",
+          "description": "Item schema for array type"
+        }
+      }
+    },
+
+    "ColumnSchema": {
+      "type": "object",
+      "description": "Column definition for table type",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Column identifier (used in data)",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "label": {
+          "type": "string",
+          "description": "Column display label",
+          "maxLength": 100
+        },
+        "type": {
+          "type": "string",
+          "enum": ["string", "number", "boolean", "enum"],
+          "description": "Column data type",
+          "default": "string"
+        },
+        "enumValues": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Allowed values for enum columns"
+        }
+      }
+    },
+
+    "RenderingHint": {
+      "type": "object",
+      "description": "Hints for UI rendering of results",
+      "additionalProperties": false,
+      "properties": {
+        "displayType": {
+          "type": "string",
+          "enum": [
+            "text",
+            "table",
+            "list",
+            "matrix",
+            "barChart",
+            "pieChart",
+            "lineChart",
+            "badge",
+            "tree",
+            "json"
+          ],
+          "description": "How to display the result data",
+          "default": "text"
+        },
+        "chartConfig": {
+          "type": "object",
+          "description": "Configuration for chart rendering",
+          "additionalProperties": false,
+          "properties": {
+            "labelField": {
+              "type": "string",
+              "description": "Field to use for labels"
+            },
+            "valueField": {
+              "type": "string",
+              "description": "Field to use for values"
+            },
+            "seriesFields": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Fields for multi-series charts"
+            },
+            "colors": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Custom colors for chart elements"
+            }
+          }
+        },
+        "tableConfig": {
+          "type": "object",
+          "description": "Configuration for table rendering",
+          "additionalProperties": false,
+          "properties": {
+            "showRowNumbers": {
+              "type": "boolean",
+              "description": "Show row numbers"
+            },
+            "showTotals": {
+              "type": "boolean",
+              "description": "Show totals row for numeric columns"
+            }
+          }
+        }
+      }
+    },
+
+    "Comment": {
+      "type": "object",
+      "description": "Comment on an evaluation or specific step",
+      "required": ["id", "authorId", "content", "createdAt"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Comment unique identifier"
+        },
+        "authorId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "User ID of comment author (within origin instance)"
+        },
+        "authorName": {
+          "type": "string",
+          "description": "Display name of comment author (optional, for portable exports)",
+          "maxLength": 100
+        },
+        "stepIndex": {
+          "type": "integer",
+          "description": "Index of the step this comment is attached to (omit for evaluation-level comments)",
+          "minimum": 0
+        },
+        "replyToId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Parent comment ID for threaded replies"
+        },
+        "content": {
+          "type": "string",
+          "description": "Comment text content",
+          "minLength": 1,
+          "maxLength": 5000
+        },
+        "resolved": {
+          "type": "boolean",
+          "description": "Whether this comment thread is resolved",
+          "default": false
+        },
+        "resolvedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the comment thread was resolved (ISO 8601)"
+        },
+        "resolvedById": {
+          "type": "string",
+          "format": "uuid",
+          "description": "User ID who resolved the thread (within origin instance)"
+        },
+        "resolvedByName": {
+          "type": "string",
+          "description": "Display name of user who resolved (optional, for portable exports)",
+          "maxLength": 100
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Comment creation timestamp (ISO 8601)"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Comment last update timestamp (ISO 8601)"
+        }
+      }
+    },
+
+    "Instruction": {
+      "type": "object",
+      "description": "Evaluation instructions defining steps and proof requirements",
+      "required": ["title", "steps"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Instruction ID within the origin instance",
+          "x-ui-hidden": true
+        },
+        "originId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Instance ID of the application this originated from (EvaL Directory or other schema-compatible app)",
+          "x-ui-hidden": true
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "x-ui-widget": "text",
+          "x-ui-placeholder": "Enter instructions title",
+          "x-ui-order": 1
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 2000,
+          "x-ui-widget": "textarea",
+          "x-ui-placeholder": "Describe what these instructions evaluate",
+          "x-ui-order": 2
+        },
+        "visibility": {
+          "type": "string",
+          "enum": ["private", "public"],
+          "default": "private",
+          "x-ui-widget": "select",
+          "x-ui-order": 3
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 30
+          },
+          "maxItems": 10,
+          "uniqueItems": true,
+          "default": [],
+          "x-ui-widget": "tags",
+          "x-ui-placeholder": "Add tags (e.g., finance, compliance)",
+          "x-ui-help": "Tags help others find your instructions. Add up to 10 tags.",
+          "x-ui-order": 4
+        },
+        "schemaVersion": {
+          "type": "string",
+          "const": "0.1.0",
+          "x-ui-hidden": true
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "items": { "$ref": "#/$defs/Step" },
+          "x-ui-widget": "array",
+          "x-ui-order": 5
+        }
+      }
+    },
+
+    "InstructionSnapshot": {
+      "type": "object",
+      "description": "Embedded instructions snapshot for evaluation persistence",
+      "required": ["title", "version", "steps"],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "steps": {
+          "type": "array",
+          "maxItems": 50,
+          "items": { "$ref": "#/$defs/Step" }
+        }
+      }
+    },
+
+    "StepResult": {
+      "type": "object",
+      "description": "Result of evaluating a single instructions step",
+      "required": ["stepIndex", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "stepIndex": {
+          "type": "integer",
+          "description": "Index of the instructions step (0-based)",
+          "minimum": 0,
+          "x-ui-hidden": true
+        },
+        "stepName": {
+          "type": "string",
+          "description": "Name of the instructions step (for display)",
+          "maxLength": 255,
+          "x-ui-widget": "text",
+          "x-ui-order": 1
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "pass", "partial", "fail"],
+          "description": "Step result status",
+          "x-ui-widget": "select",
+          "x-ui-order": 2
+        },
+        "result": {
+          "type": "string",
+          "description": "Step result text / conclusion. Use [attachment:UUID] or [attachment:UUID \"display text\"] to reference attachments inline.",
+          "maxLength": 10000,
+          "x-ui-widget": "textarea",
+          "x-ui-placeholder": "Evaluation result for this step",
+          "x-ui-order": 3
+        },
+        "structuredResult": {
+          "$ref": "#/$defs/StructuredResult",
+          "description": "Structured result data matching the step's resultSchema",
+          "x-ui-widget": "json-viewer",
+          "x-ui-order": 4
+        },
+        "proof": {
+          "$ref": "#/$defs/Proof",
+          "description": "Proof chain for this step",
+          "x-ui-order": 5
+        },
+        "attachments": {
+          "type": "array",
+          "description": "Attachments specific to this step result (max 20 per step)",
+          "items": { "$ref": "#/$defs/Attachment" },
+          "maxItems": 20,
+          "default": [],
+          "x-ui-widget": "attachments",
+          "x-ui-order": 6
+        }
+      }
+    },
+
+    "StructuredResult": {
+      "type": "object",
+      "description": "Structured evaluation result data. The 'data' field accepts: string, number, boolean, object, array, or table format {headers: string[], rows: [{cells: any[]}]}",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "string",
+            "number",
+            "boolean",
+            "enum",
+            "object",
+            "array",
+            "table"
+          ],
+          "description": "The result data type"
+        },
+        "data": {
+          "description": "The actual result data. Type varies by 'type' field: string, number, boolean, enum (string from allowed values), object, array, or table {headers, rows}"
+        },
+        "summary": {
+          "type": "string",
+          "description": "Human-readable summary of the structured result",
+          "maxLength": 2000
+        }
+      }
+    },
+
+    "Proof": {
+      "type": "object",
+      "description": "Evidence and reasoning supporting a step result",
+      "additionalProperties": false,
+      "properties": {
+        "quote": {
+          "type": "string",
+          "description": "Source quote as evidence. Use [attachment:UUID] to reference attachments inline.",
+          "maxLength": 10000,
+          "x-ui-widget": "textarea",
+          "x-ui-placeholder": "Quote from source document",
+          "x-ui-order": 1
+        },
+        "source": {
+          "type": "string",
+          "description": "Source reference (e.g., 'Patent EP1234567, paragraph 42'). Use [attachment:UUID] to reference attachments inline.",
+          "maxLength": 500,
+          "x-ui-widget": "text",
+          "x-ui-placeholder": "Source reference",
+          "x-ui-order": 2
+        },
+        "reasoning": {
+          "type": "string",
+          "description": "AI's reasoning for the conclusion. Use [attachment:UUID] to reference attachments inline.",
+          "maxLength": 10000,
+          "x-ui-widget": "textarea",
+          "x-ui-placeholder": "Explanation of how the conclusion was reached",
+          "x-ui-order": 3
+        },
+        "attachmentRefs": {
+          "type": "array",
+          "description": "References to attachments supporting this proof",
+          "items": { "$ref": "#/$defs/AttachmentRef" },
+          "maxItems": 10,
+          "x-ui-order": 4
+        }
+      }
+    },
+
+    "EvaluationError": {
+      "type": "object",
+      "description": "Error details when evaluation fails",
+      "additionalProperties": false,
+      "properties": {
+        "stepIndex": {
+          "type": "integer",
+          "description": "Index of the failed step (if applicable)",
+          "minimum": 0
+        },
+        "message": {
+          "type": "string",
+          "description": "Error message",
+          "maxLength": 2000
+        },
+        "type": {
+          "type": "string",
+          "description": "Error type/category",
+          "enum": [
+            "validation",
+            "execution",
+            "timeout",
+            "external_service",
+            "unknown"
+          ],
+          "default": "unknown"
+        }
+      }
+    },
+
+    "Evaluation": {
+      "type": "object",
+      "description": "Evaluation results with traced reasoning and proof chains",
+      "required": [
+        "title",
+        "instructionsId",
+        "instructionsVersion",
+        "status",
+        "schemaVersion"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Evaluation ID within the origin instance",
+          "x-ui-hidden": true
+        },
+        "originId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Instance ID of the application this originated from (EvaL Directory or other schema-compatible app)",
+          "x-ui-hidden": true
+        },
+        "title": {
+          "type": "string",
+          "description": "Evaluation title",
+          "minLength": 1,
+          "maxLength": 255,
+          "x-ui-widget": "text",
+          "x-ui-placeholder": "Enter evaluation title",
+          "x-ui-order": 1
+        },
+        "instructionsId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "ID of the instructions this evaluation is based on",
+          "x-ui-hidden": true
+        },
+        "instructionsVersion": {
+          "type": "integer",
+          "description": "Version of the instructions used",
+          "minimum": 1,
+          "x-ui-hidden": true
+        },
+        "instructions": {
+          "$ref": "#/$defs/InstructionSnapshot",
+          "description": "Embedded instructions snapshot for data persistence",
+          "x-ui-hidden": true
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "running", "completed", "failed"],
+          "description": "Evaluation status",
+          "default": "pending",
+          "x-ui-widget": "select",
+          "x-ui-order": 2
+        },
+        "visibility": {
+          "type": "string",
+          "enum": ["private", "public"],
+          "default": "private",
+          "description": "Evaluation visibility",
+          "x-ui-widget": "select",
+          "x-ui-order": 3
+        },
+        "schemaVersion": {
+          "type": "string",
+          "const": "0.1.0",
+          "description": "Schema version",
+          "x-ui-hidden": true
+        },
+        "steps": {
+          "type": "array",
+          "description": "Step results",
+          "maxItems": 50,
+          "items": { "$ref": "#/$defs/StepResult" },
+          "x-ui-widget": "array",
+          "x-ui-order": 4
+        },
+        "attachments": {
+          "type": "array",
+          "description": "Evaluation-level attachments (PDFs, images, documents) - max 50 per evaluation",
+          "items": { "$ref": "#/$defs/Attachment" },
+          "maxItems": 50,
+          "default": [],
+          "x-ui-widget": "attachments",
+          "x-ui-order": 5
+        },
+        "comments": {
+          "type": "array",
+          "description": "Comments from owner and collaborators",
+          "items": { "$ref": "#/$defs/Comment" },
+          "x-ui-order": 6
+        },
+        "error": {
+          "$ref": "#/$defs/EvaluationError",
+          "description": "Error details if status is 'failed'",
+          "x-ui-order": 7
+        },
+        "exportedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when evaluation was exported (export only)",
+          "x-ui-hidden": true
+        },
+        "exportedFrom": {
+          "type": "string",
+          "description": "Origin instance hostname (export only)",
+          "maxLength": 255,
+          "x-ui-hidden": true
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp (ISO 8601)",
+          "x-ui-hidden": true
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp (ISO 8601)",
+          "x-ui-hidden": true
+        },
+        "clientName": {
+          "type": "string",
+          "description": "Name of the MCP client that created this evaluation",
+          "maxLength": 255,
+          "x-ui-widget": "readonly"
+        }
+      }
+    }
+  }
+}

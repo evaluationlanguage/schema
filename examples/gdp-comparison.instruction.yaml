@@ -1,0 +1,234 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/evaluationlanguage/schema/v0.1.0/schema.json
+#
+# GDP Data Validation - World Bank Methodology
+# Cross-validates economic data using multiple authoritative sources
+#
+title: GDP Data Validation (World Bank/IMF Methodology)
+description: |
+  Systematic validation of GDP figures using established economic data sources
+  and methodologies. Compares nominal GDP, GDP (PPP), and per capita figures
+  across World Bank World Development Indicators (WDI), IMF World Economic
+  Outlook (WEO), and national statistics offices to identify discrepancies
+  and validate economic claims.
+visibility: public
+tags:
+  - economics
+  - gdp
+  - world-bank
+  - imf
+  - data-validation
+schemaVersion: "0.1.0"
+steps:
+  - name: Identify data sources and reference year
+    description: |
+      Determine the authoritative sources for GDP validation:
+
+      PRIMARY SOURCES:
+      - World Bank World Development Indicators (WDI): data.worldbank.org
+      - IMF World Economic Outlook (WEO): imf.org/external/datamapper
+
+      SECONDARY SOURCES:
+      - National Statistics Offices (for verification)
+      - UN Statistics Division
+      - OECD Statistics (for member countries)
+
+      Establish the reference year for comparison. Note that different sources
+      may have different data availability dates and revision schedules.
+      The World Bank typically releases final data with a 2-year lag.
+    proofRequirement: |
+      Document each source used, including the exact URL, access date,
+      and data vintage (release version/date).
+    resultSchema:
+      type: object
+      properties:
+        referenceYear:
+          type: number
+          description: Year for which GDP data is being validated
+        countriesAnalyzed:
+          type: array
+          items:
+            type: string
+        primarySources:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              url:
+                type: string
+              accessDate:
+                type: string
+              dataVintage:
+                type: string
+        currencyUnit:
+          type: enum
+          enumValues:
+            - Current USD
+            - Constant 2015 USD
+            - Constant 2017 PPP $
+            - Local Currency
+
+  - name: Extract nominal GDP figures
+    description: |
+      Collect nominal GDP (current US dollars) for each country from each source.
+
+      METHODOLOGY NOTES:
+      - Nominal GDP: Market value of goods/services at current prices and exchange rates
+      - World Bank uses Atlas method for currency conversion (3-year average exchange rate)
+      - IMF uses period average exchange rates
+      - These methodological differences can cause variation of 5-15%
+
+      Record the exact figures from each source with full precision.
+    proofRequirement: |
+      For each data point, provide the source table/dataset name and
+      the exact published figure with its unit.
+    resultSchema:
+      type: table
+      columns:
+        - name: country
+          label: Country
+          type: string
+        - name: worldBankGDP
+          label: World Bank (USD B)
+          type: number
+        - name: imfGDP
+          label: IMF (USD B)
+          type: number
+        - name: nationalGDP
+          label: National Stats (USD B)
+          type: number
+        - name: variance
+          label: Variance %
+          type: number
+      rendering:
+        displayType: table
+        tableConfig:
+          showTotals: true
+
+  - name: Extract PPP-adjusted GDP figures
+    description: |
+      Collect GDP at Purchasing Power Parity (PPP) for each country.
+
+      METHODOLOGY NOTES:
+      - PPP GDP adjusts for price level differences between countries
+      - Based on International Comparison Program (ICP) price surveys
+      - World Bank uses ICP 2017 round as base (constant 2017 international $)
+      - IMF may use different PPP conversion factors
+
+      PPP figures are essential for comparing living standards across countries
+      as they account for the relative cost of goods and services.
+    proofRequirement: |
+      Document the PPP base year used by each source and any methodological
+      notes about PPP calculation (e.g., ICP round used).
+    resultSchema:
+      type: table
+      columns:
+        - name: country
+          label: Country
+          type: string
+        - name: worldBankPPP
+          label: World Bank PPP (Int$ B)
+          type: number
+        - name: imfPPP
+          label: IMF PPP (Int$ B)
+          type: number
+        - name: pppConversionFactor
+          label: PPP Factor
+          type: number
+        - name: variance
+          label: Variance %
+          type: number
+      rendering:
+        displayType: table
+
+  - name: Calculate per capita figures and rankings
+    description: |
+      Calculate GDP per capita (both nominal and PPP) and determine country rankings.
+
+      METHODOLOGY:
+      - Population figures should come from the same source as GDP for consistency
+      - World Bank uses mid-year population estimates
+      - Per capita = Total GDP / Population
+
+      Rankings provide context for relative economic development levels.
+      Note: Small countries and city-states often have outlier per capita figures.
+    proofRequirement: |
+      Provide population figures used for calculation with source citation.
+      Show calculation methodology for any derived figures.
+    resultSchema:
+      type: table
+      columns:
+        - name: country
+          label: Country
+          type: string
+        - name: population
+          label: Population (M)
+          type: number
+        - name: gdpPerCapitaNominal
+          label: GDP/Capita Nominal
+          type: number
+        - name: gdpPerCapitaPPP
+          label: GDP/Capita PPP
+          type: number
+        - name: rankNominal
+          label: Rank (Nominal)
+          type: number
+        - name: rankPPP
+          label: Rank (PPP)
+          type: number
+      rendering:
+        displayType: table
+        tableConfig:
+          showRowNumbers: true
+
+  - name: Analyze discrepancies and validation summary
+    description: |
+      Identify and explain any significant discrepancies (>5%) between sources.
+
+      COMMON CAUSES OF DISCREPANCIES:
+      - Exchange rate methodology (Atlas vs period average)
+      - Data revision timing (preliminary vs final)
+      - Treatment of informal economy
+      - Definition of economic territory
+      - Different PPP base years
+
+      Provide overall data quality assessment and recommendations for
+      which source to use for different purposes.
+    proofRequirement: |
+      For each significant discrepancy, cite the specific methodological
+      difference that explains the variance.
+    resultSchema:
+      type: object
+      properties:
+        significantDiscrepancies:
+          type: array
+          items:
+            type: object
+            properties:
+              country:
+                type: string
+              metric:
+                type: string
+              variancePercent:
+                type: number
+              explanation:
+                type: string
+        overallDataQuality:
+          type: enum
+          enumValues:
+            - high consistency
+            - moderate consistency
+            - low consistency
+        recommendedSource:
+          type: object
+          properties:
+            forNominalComparisons:
+              type: string
+            forPPPComparisons:
+              type: string
+            forTimeSeriesAnalysis:
+              type: string
+        validationConclusion:
+          type: string
+          description: Summary of validation findings

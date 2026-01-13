@@ -1,0 +1,275 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/evaluationlanguage/schema/v0.1.0/schema.json
+#
+# Example evaluation result for SLA Compliance Audit
+# Q4 2025 audit for a cloud service provider
+#
+title: SLA Compliance Audit - CloudCorp Q4 2025
+instructionsId: 00000000-0000-0000-0000-000000000003
+instructionsVersion: 1
+status: completed
+visibility: public
+schemaVersion: "0.1.0"
+steps:
+  - stepIndex: 0
+    stepName: Extract SLA metrics and thresholds
+    status: pass
+    result: Extracted 5 SLA metrics from the Master Service Agreement.
+    structuredResult:
+      type: array
+      data:
+        - metricName: Platform Availability
+          definition: |
+            Percentage of time the production platform is operational and accessible.
+            Measured as: (Total minutes - Unplanned outage minutes) / Total minutes * 100
+          target: "99.9%"
+          measurementPeriod: monthly
+          serviceCreditFormula: |
+            99.0-99.9%: 10% monthly fee credit
+            95.0-99.0%: 25% monthly fee credit
+            <95.0%: 50% monthly fee credit
+          exclusions:
+            - Scheduled maintenance (with 72h notice)
+            - Customer-caused issues
+            - Force majeure events
+        - metricName: API Response Time (P95)
+          definition: 95th percentile response time for API requests
+          target: "<200ms"
+          measurementPeriod: monthly
+          serviceCreditFormula: "5% credit per 50ms over target"
+          exclusions:
+            - Requests during maintenance windows
+        - metricName: Incident Response Time (P1)
+          definition: Time from incident report to first engineer response for Priority 1 incidents
+          target: "15 minutes"
+          measurementPeriod: monthly
+          serviceCreditFormula: "$500 per incident exceeding target"
+          exclusions: []
+        - metricName: Incident Resolution Time (P1)
+          definition: Time from incident report to service restoration for Priority 1 incidents
+          target: "4 hours"
+          measurementPeriod: monthly
+          serviceCreditFormula: "$1,000 per incident exceeding target"
+          exclusions:
+            - Third-party dependency issues (with evidence)
+        - metricName: Support Ticket Response
+          definition: Time to first response for non-urgent support tickets
+          target: "4 business hours"
+          measurementPeriod: monthly
+          serviceCreditFormula: "None - tracked for service quality only"
+          exclusions:
+            - Weekends and holidays
+      summary: 5 metrics defined with service credit formulas for 4 of them
+    proof:
+      source: CloudCorp Master Service Agreement v3.2, Schedule B - Service Levels
+      quote: |
+        Section 2.1: "Provider shall maintain Platform Availability of not less than
+        99.9% measured on a calendar month basis. Availability = (Total Minutes -
+        Unplanned Outage Minutes) / Total Minutes * 100"
+      reasoning: All SLA metrics extracted from the contractual agreement with exact definitions.
+
+  - stepIndex: 1
+    stepName: Collect actual performance data
+    status: pass
+    result: Collected Q4 2025 performance data from monitoring and ticketing systems.
+    structuredResult:
+      type: table
+      data:
+        headers:
+          - metricName
+          - period
+          - actualValue
+          - target
+          - dataSource
+          - dataQuality
+        rows:
+          - cells:
+              - Platform Availability
+              - October 2025
+              - "99.95%"
+              - "99.9%"
+              - Datadog Synthetics
+              - complete
+          - cells:
+              - Platform Availability
+              - November 2025
+              - "99.87%"
+              - "99.9%"
+              - Datadog Synthetics
+              - complete
+          - cells:
+              - Platform Availability
+              - December 2025
+              - "99.92%"
+              - "99.9%"
+              - Datadog Synthetics
+              - complete
+          - cells:
+              - API Response Time (P95)
+              - Q4 2025
+              - "187ms"
+              - "<200ms"
+              - CloudWatch Metrics
+              - complete
+          - cells:
+              - Incident Response Time (P1)
+              - Q4 2025
+              - "12 minutes avg"
+              - "15 minutes"
+              - PagerDuty
+              - complete
+          - cells:
+              - Incident Resolution Time (P1)
+              - Q4 2025
+              - "3.2 hours avg"
+              - "4 hours"
+              - ServiceNow
+              - complete
+          - cells:
+              - Support Ticket Response
+              - Q4 2025
+              - "2.8 hours avg"
+              - "4 business hours"
+              - Zendesk
+              - complete
+      summary: All data sources complete with no gaps in monitoring
+    proof:
+      source: |
+        Datadog: Synthetic monitoring dashboard, "Production Availability" monitor
+        PagerDuty: Incident response report Q4 2025
+        ServiceNow: MTTR report for P1 incidents
+      quote: |
+        Datadog November 2025: "Uptime: 99.87% | Downtime: 56 minutes 16 seconds"
+      reasoning: Data extracted from systems of record with complete coverage for audit period.
+
+  - stepIndex: 2
+    stepName: Calculate compliance percentages
+    status: pass
+    result: Calculated compliance rates - 1 metric in breach for November.
+    structuredResult:
+      type: table
+      data:
+        headers:
+          - metricName
+          - target
+          - actual
+          - complianceRate
+          - status
+        rows:
+          - cells:
+              ["Platform Availability (Oct)", "99.9%", "99.95%", 100, "met"]
+          - cells:
+              ["Platform Availability (Nov)", "99.9%", "99.87%", 0, "breach"]
+          - cells:
+              ["Platform Availability (Dec)", "99.9%", "99.92%", 100, "met"]
+          - cells: ["API Response Time (P95)", "<200ms", "187ms", 100, "met"]
+          - cells:
+              ["Incident Response Time (P1)", "15 min", "12 min", 100, "met"]
+          - cells:
+              [
+                "Incident Resolution Time (P1)",
+                "4 hours",
+                "3.2 hours",
+                100,
+                "met",
+              ]
+          - cells:
+              ["Support Ticket Response", "4 hours", "2.8 hours", 100, "met"]
+      summary: November availability breach - 99.87% vs 99.9% target (0.03% shortfall)
+    proof:
+      source: Calculated from collected performance data
+      quote: |
+        November calculation: Total minutes = 43,200
+        Unplanned outage = 56.27 minutes
+        Availability = (43,200 - 56.27) / 43,200 = 99.87%
+        Target = 99.9%, Shortfall = 0.03%
+      reasoning: |
+        November failed to meet the 99.9% threshold by 0.03%, which translates to
+        approximately 13 additional minutes of unplanned downtime beyond the allowed
+        43.2 minutes (0.1% of 43,200 minutes).
+
+  - stepIndex: 3
+    stepName: Identify and document breaches
+    status: pass
+    result: Documented 1 SLA breach in November 2025.
+    structuredResult:
+      type: array
+      data:
+        - breachId: BR-2025-Q4-001
+          metricBreached: Platform Availability
+          incidentId: INC-2025-1847
+          timestamp: "2025-11-15T03:42:00Z"
+          duration: "47 minutes"
+          severity: major
+          rootCause: |
+            Database connection pool exhaustion caused by memory leak in v2.14.3
+            deployment. Auto-scaling failed to mitigate due to pod startup time
+            exceeding health check timeout.
+          serviceCreditAmount: "10% of November monthly fee ($4,250)"
+          remediation: |
+            1. Rolled back to v2.14.2 (immediate)
+            2. Memory leak fixed in v2.14.4 (deployed 2025-11-18)
+            3. Increased connection pool size and health check timeout
+            4. Added memory usage alerting threshold
+      summary: 1 major breach requiring 10% service credit
+    proof:
+      source: ServiceNow INC-2025-1847, Post-Incident Report PIR-2025-0089
+      quote: |
+        PIR-2025-0089: "Root cause identified as memory leak in GraphQL resolver
+        introduced in v2.14.3. Connection pool exhausted at 03:42 UTC, full
+        restoration at 04:29 UTC. Total customer-impacting duration: 47 minutes."
+      reasoning: |
+        The 47-minute outage on November 15, combined with 9 minutes of other
+        unplanned downtime during the month, resulted in total downtime of 56 minutes,
+        exceeding the allowed 43.2 minutes for 99.9% availability.
+
+  - stepIndex: 4
+    stepName: Generate compliance summary and recommendations
+    status: pass
+    result: Overall compliance satisfactory with one breach requiring remediation.
+    structuredResult:
+      type: object
+      data:
+        auditPeriod: Q4 2025 (October - December)
+        overallComplianceRate: 96.7
+        complianceRating: satisfactory
+        totalBreaches: 1
+        criticalBreaches: 0
+        totalServiceCredits: "$4,250 (10% of November fee)"
+        trend: stable
+        recommendations:
+          - priority: high
+            recommendation: |
+              Implement canary deployment strategy for production releases to detect
+              memory leaks and performance regressions before full rollout.
+            expectedImpact: Reduce deployment-related incidents by 60%
+          - priority: medium
+            recommendation: |
+              Increase database connection pool monitoring with alerts at 70% and 85%
+              utilization thresholds.
+            expectedImpact: Provide 10-15 minute early warning before exhaustion
+          - priority: medium
+            recommendation: |
+              Review auto-scaling configuration to reduce pod startup time or increase
+              health check timeout to prevent scaling failures during incidents.
+            expectedImpact: Improve incident recovery time by 30%
+          - priority: low
+            recommendation: |
+              Consider upgrading to higher availability tier (99.95% SLA) given
+              current performance levels exceed 99.9% in 2 of 3 months.
+            expectedImpact: Better alignment of SLA with actual service capability
+        executiveSummary: |
+          Q4 2025 SLA compliance audit shows satisfactory overall performance with
+          one availability breach in November requiring $4,250 service credit. All
+          other metrics met or exceeded targets. The November incident was caused by
+          a memory leak in a software deployment, which has been remediated. Three
+          high and medium priority recommendations have been provided to prevent
+          similar incidents. Overall trend is stable with no pattern of declining
+          service quality.
+      summary: Satisfactory - 96.7% overall compliance, 1 breach, $4,250 credit due
+    proof:
+      source: Analysis of Q4 2025 SLA metrics and breach documentation
+      reasoning: |
+        Overall compliance calculated as weighted average: Availability (weight 3) +
+        Response times (weight 2) + Support (weight 1). November breach reduced
+        availability score but other months and all other metrics at 100%.
+        Rating of "satisfactory" per scale: 95-99% overall with no critical breaches.

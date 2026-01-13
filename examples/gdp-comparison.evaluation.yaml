@@ -1,0 +1,190 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/evaluationlanguage/schema/v0.1.0/schema.json
+#
+# Example evaluation result for GDP Data Validation
+# Compares major economies using World Bank and IMF data
+#
+title: GDP Validation - G7 + China 2023
+instructionsId: 00000000-0000-0000-0000-000000000002
+instructionsVersion: 1
+status: completed
+visibility: public
+schemaVersion: "0.1.0"
+steps:
+  - stepIndex: 0
+    stepName: Identify data sources and reference year
+    status: pass
+    result: Established 2023 as reference year with World Bank WDI and IMF WEO as primary sources.
+    structuredResult:
+      type: object
+      data:
+        referenceYear: 2023
+        countriesAnalyzed:
+          - United States
+          - China
+          - Japan
+          - Germany
+          - United Kingdom
+          - France
+          - Italy
+        primarySources:
+          - name: World Bank World Development Indicators
+            url: https://data.worldbank.org/indicator/NY.GDP.MKTP.CD
+            accessDate: "2026-01-10"
+            dataVintage: September 2025 revision
+          - name: IMF World Economic Outlook
+            url: https://www.imf.org/external/datamapper/NGDPD@WEO
+            accessDate: "2026-01-10"
+            dataVintage: October 2025 WEO
+        currencyUnit: Current USD
+      summary: G7 countries plus China analyzed using 2023 data from World Bank and IMF
+    proof:
+      source: World Bank Data Catalog, IMF Data Mapper
+      quote: |
+        World Bank: "GDP (current US$) - NY.GDP.MKTP.CD. Last Updated: Sep 2025"
+        IMF WEO: "Gross domestic product, current prices (U.S. dollars) - October 2025"
+      reasoning: |
+        Selected 2023 as reference year because it has finalized data from both sources.
+        2024 data is still preliminary with significant revision risk.
+
+  - stepIndex: 1
+    stepName: Extract nominal GDP figures
+    status: pass
+    result: Collected nominal GDP figures for all 7 countries from both sources.
+    structuredResult:
+      type: table
+      data:
+        headers:
+          - country
+          - worldBankGDP
+          - imfGDP
+          - nationalGDP
+          - variance
+        rows:
+          - cells: ["United States", 27940.0, 27938.0, 27937.2, 0.01]
+          - cells: ["China", 17795.0, 17963.0, 17891.0, 0.94]
+          - cells: ["Japan", 4213.0, 4231.0, 4230.9, 0.43]
+          - cells: ["Germany", 4456.0, 4457.0, 4455.0, 0.04]
+          - cells: ["United Kingdom", 3340.0, 3332.0, 3332.9, 0.24]
+          - cells: ["France", 3031.0, 3049.0, 3048.0, 0.59]
+          - cells: ["Italy", 2255.0, 2255.0, 2254.9, 0.00]
+      summary: All variances under 1% - high consistency between World Bank and IMF nominal GDP figures
+    proof:
+      source: |
+        World Bank: NY.GDP.MKTP.CD indicator
+        IMF: NGDPD@WEO dataset
+      quote: |
+        World Bank USA 2023: "27,940,350,000,000 current US$"
+        IMF USA 2023: "27,938.200 billions of US$"
+      reasoning: |
+        The small variance for USA (0.01%) represents the difference between
+        World Bank's Atlas method and IMF's period average exchange rate method.
+        For domestic-currency countries like USA, this difference is minimal.
+
+  - stepIndex: 2
+    stepName: Extract PPP-adjusted GDP figures
+    status: pass
+    result: Collected PPP GDP using ICP 2017 round constant international dollars.
+    structuredResult:
+      type: table
+      data:
+        headers:
+          - country
+          - worldBankPPP
+          - imfPPP
+          - pppConversionFactor
+          - variance
+        rows:
+          - cells: ["United States", 27940.0, 27938.0, 1.00, 0.01]
+          - cells: ["China", 33014.0, 34600.0, 3.55, 4.81]
+          - cells: ["Japan", 6496.0, 6503.0, 0.65, 0.11]
+          - cells: ["Germany", 5537.0, 5545.0, 0.80, 0.14]
+          - cells: ["United Kingdom", 3870.0, 3878.0, 0.86, 0.21]
+          - cells: ["France", 3782.0, 3805.0, 0.80, 0.61]
+          - cells: ["Italy", 3178.0, 3180.0, 0.71, 0.06]
+      summary: China shows 4.81% variance - significant due to PPP methodology differences
+    proof:
+      source: |
+        World Bank: NY.GDP.MKTP.PP.CD indicator (PPP, current international $)
+        IMF: PPPGDP@WEO dataset
+      quote: |
+        World Bank China 2023 PPP: "33,014,401,000,000 current international $"
+        IMF China 2023 PPP: "34,600.000 billions of international dollars"
+      reasoning: |
+        The 4.81% variance for China reflects different PPP conversion factors.
+        World Bank uses ICP 2017 round extrapolated, while IMF incorporates
+        more recent price survey data. China's rapid structural changes make
+        PPP estimation particularly challenging.
+
+  - stepIndex: 3
+    stepName: Calculate per capita figures and rankings
+    status: pass
+    result: Calculated per capita GDP and global rankings for all countries.
+    structuredResult:
+      type: table
+      data:
+        headers:
+          - country
+          - population
+          - gdpPerCapitaNominal
+          - gdpPerCapitaPPP
+          - rankNominal
+          - rankPPP
+        rows:
+          - cells: ["United States", 334.9, 83426, 83426, 1, 1]
+          - cells: ["Germany", 84.5, 52734, 65527, 2, 2]
+          - cells: ["United Kingdom", 67.7, 49335, 57163, 3, 4]
+          - cells: ["France", 68.0, 44574, 55618, 4, 5]
+          - cells: ["Japan", 124.5, 33837, 52177, 5, 6]
+          - cells: ["Italy", 58.9, 38285, 53955, 6, 3]
+          - cells: ["China", 1412.0, 12603, 23381, 7, 7]
+      summary: Rankings shift significantly between nominal and PPP measures
+    proof:
+      source: World Bank SP.POP.TOTL indicator for population
+      quote: |
+        World Bank USA population 2023: "334,914,895"
+        Calculation: 27,940B / 334.9M = $83,426 per capita
+      reasoning: |
+        Italy jumps from rank 6 (nominal) to rank 3 (PPP) due to lower
+        domestic price levels increasing purchasing power. China remains
+        last in this G7+ comparison on per capita basis despite having
+        the second largest total GDP.
+
+  - stepIndex: 4
+    stepName: Analyze discrepancies and validation summary
+    status: pass
+    result: Overall high data consistency with one significant discrepancy identified (China PPP).
+    structuredResult:
+      type: object
+      data:
+        significantDiscrepancies:
+          - country: China
+            metric: GDP (PPP)
+            variancePercent: 4.81
+            explanation: |
+              Different PPP conversion factors between World Bank (using extrapolated
+              ICP 2017 data) and IMF (incorporating newer price surveys). China's
+              rapid structural transformation and regional price variation make PPP
+              estimation challenging. The informal economy treatment also differs.
+        overallDataQuality: high consistency
+        recommendedSource:
+          forNominalComparisons: World Bank WDI (Atlas method provides stability)
+          forPPPComparisons: IMF WEO (more frequent updates to PPP factors)
+          forTimeSeriesAnalysis: World Bank WDI (consistent methodology over time)
+        validationConclusion: |
+          G7 + China GDP data shows high consistency between World Bank and IMF sources
+          for 2023. Nominal GDP variances are all under 1%, indicating strong data
+          quality and methodological alignment. The notable exception is China's PPP
+          GDP (4.81% variance), which is within expected range given the complexity
+          of PPP calculation for rapidly developing economies. For most analytical
+          purposes, either source provides reliable data. Use World Bank for historical
+          consistency and IMF for more current PPP estimates.
+      summary: High consistency - data validated for all countries
+    proof:
+      source: |
+        World Bank Atlas Method documentation
+        IMF WEO methodology notes
+      reasoning: |
+        The validation confirms that major international organizations produce
+        consistent GDP estimates. The China PPP discrepancy is well-documented
+        in economic literature and does not indicate data quality issues,
+        rather methodological choices in handling rapidly changing economies.

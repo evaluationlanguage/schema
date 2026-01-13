@@ -1,0 +1,268 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/evaluationlanguage/schema/v0.1.0/schema.json
+#
+# SLA Compliance Audit - Service Level Agreement Validation
+# Systematic verification of contractual service commitments
+#
+title: SLA Compliance Audit
+description: |
+  Comprehensive Service Level Agreement (SLA) compliance audit methodology.
+  Validates service delivery against contractual commitments, identifies
+  breaches, calculates service credits, and assesses overall compliance
+  posture following ITIL and ISO 20000 best practices.
+visibility: public
+tags:
+  - sla
+  - compliance
+  - itil
+  - service-management
+  - audit
+schemaVersion: "0.1.0"
+steps:
+  - name: Extract SLA metrics and thresholds
+    description: |
+      Review the Service Level Agreement to identify all measurable commitments.
+
+      COMMON SLA METRICS:
+      - Availability: Percentage uptime (e.g., 99.9% = 8.76 hours downtime/year)
+      - Response Time: Time to first response for incidents
+      - Resolution Time: Time to resolve incidents by priority
+      - Performance: Transaction response times, throughput
+      - Support Hours: Coverage windows and response expectations
+
+      For each metric, extract:
+      - Metric name and definition
+      - Target threshold (e.g., 99.9%)
+      - Measurement period (monthly, quarterly)
+      - Exclusions (planned maintenance, force majeure)
+      - Service credit calculation formula if breached
+    proofRequirement: Quote the exact SLA clause defining each metric and threshold.
+    resultSchema:
+      type: array
+      items:
+        type: object
+        properties:
+          metricName:
+            type: string
+            description: Name of the SLA metric
+          definition:
+            type: string
+            description: How the metric is calculated
+          target:
+            type: string
+            description: Target threshold value
+          measurementPeriod:
+            type: enum
+            enumValues:
+              - daily
+              - weekly
+              - monthly
+              - quarterly
+              - annually
+          serviceCreditFormula:
+            type: string
+            description: Credit calculation if breached
+          exclusions:
+            type: array
+            items:
+              type: string
+
+  - name: Collect actual performance data
+    description: |
+      Gather actual performance measurements for the audit period.
+
+      DATA SOURCES:
+      - Monitoring systems (APM, infrastructure monitoring)
+      - Incident management system (tickets, timestamps)
+      - Change management records (planned maintenance windows)
+      - Service desk logs (response/resolution times)
+
+      MEASUREMENT GUIDELINES:
+      - Use source systems of record, not derived reports
+      - Verify timestamp accuracy (timezone handling)
+      - Document any gaps in monitoring data
+      - Apply agreed exclusion windows before calculation
+    proofRequirement: |
+      Document the data source for each metric, including system name,
+      query/report used, and time range of data extraction.
+    resultSchema:
+      type: table
+      columns:
+        - name: metricName
+          label: Metric
+          type: string
+        - name: period
+          label: Period
+          type: string
+        - name: actualValue
+          label: Actual
+          type: string
+        - name: target
+          label: Target
+          type: string
+        - name: dataSource
+          label: Data Source
+          type: string
+        - name: dataQuality
+          label: Quality
+          type: enum
+          enumValues:
+            - complete
+            - partial
+            - estimated
+      rendering:
+        displayType: table
+
+  - name: Calculate compliance percentages
+    description: |
+      Calculate compliance rate for each metric and overall.
+
+      CALCULATION METHODOLOGY:
+      1. For availability: (Total time - Unplanned downtime) / Total time * 100
+      2. For response time: Count of incidents meeting target / Total incidents * 100
+      3. For resolution time: Same as response time, per priority level
+      4. Apply exclusions: Subtract planned maintenance and approved exceptions
+
+      COMPLIANCE THRESHOLDS:
+      - Met: Actual >= Target
+      - Near Miss: Actual within 0.5% of target
+      - Breach: Actual < Target
+    proofRequirement: Show calculation formula and intermediate values for each metric.
+    resultSchema:
+      type: table
+      columns:
+        - name: metricName
+          label: Metric
+          type: string
+        - name: target
+          label: Target
+          type: string
+        - name: actual
+          label: Actual
+          type: string
+        - name: complianceRate
+          label: Compliance %
+          type: number
+        - name: status
+          label: Status
+          type: enum
+          enumValues:
+            - met
+            - near miss
+            - breach
+      rendering:
+        displayType: table
+        tableConfig:
+          showRowNumbers: true
+
+  - name: Identify and document breaches
+    description: |
+      For each SLA breach, document the incident details.
+
+      BREACH DOCUMENTATION REQUIREMENTS:
+      - Incident ID and timestamp
+      - Duration of breach
+      - Root cause (if known)
+      - Business impact assessment
+      - Remediation actions taken
+      - Service credit calculation
+
+      Categorize breaches by:
+      - Severity: Critical / Major / Minor
+      - Cause: Technical failure / Human error / Third party / Force majeure
+      - Repeatability: One-time / Recurring pattern
+    proofRequirement: |
+      Reference specific incident tickets and timeline evidence for each breach.
+    resultSchema:
+      type: array
+      items:
+        type: object
+        properties:
+          breachId:
+            type: string
+            description: Unique identifier for tracking
+          metricBreached:
+            type: string
+          incidentId:
+            type: string
+          timestamp:
+            type: string
+          duration:
+            type: string
+          severity:
+            type: enum
+            enumValues:
+              - critical
+              - major
+              - minor
+          rootCause:
+            type: string
+          serviceCreditAmount:
+            type: string
+          remediation:
+            type: string
+
+  - name: Generate compliance summary and recommendations
+    description: |
+      Provide overall compliance assessment with recommendations.
+
+      SUMMARY ELEMENTS:
+      - Overall compliance score (weighted by metric importance)
+      - Trend analysis (improving/stable/declining)
+      - Total service credits due
+      - Risk assessment for future periods
+      - Remediation priority recommendations
+
+      COMPLIANCE RATING SCALE:
+      - Excellent: >99% overall, no critical breaches
+      - Satisfactory: 95-99% overall, minor breaches only
+      - At Risk: 90-95% overall, some major breaches
+      - Non-Compliant: <90% overall, critical breaches
+    proofRequirement: |
+      Reference specific metrics and breaches that support the overall rating.
+    resultSchema:
+      type: object
+      properties:
+        auditPeriod:
+          type: string
+          description: Period covered by this audit
+        overallComplianceRate:
+          type: number
+          description: Weighted compliance percentage
+        complianceRating:
+          type: enum
+          enumValues:
+            - excellent
+            - satisfactory
+            - at risk
+            - non-compliant
+        totalBreaches:
+          type: number
+        criticalBreaches:
+          type: number
+        totalServiceCredits:
+          type: string
+          description: Total credits due for the period
+        trend:
+          type: enum
+          enumValues:
+            - improving
+            - stable
+            - declining
+        recommendations:
+          type: array
+          items:
+            type: object
+            properties:
+              priority:
+                type: enum
+                enumValues:
+                  - high
+                  - medium
+                  - low
+              recommendation:
+                type: string
+              expectedImpact:
+                type: string
+        executiveSummary:
+          type: string
+          description: Brief summary for executive reporting

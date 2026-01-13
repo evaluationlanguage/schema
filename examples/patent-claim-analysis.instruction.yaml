@@ -1,0 +1,216 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/evaluationlanguage/schema/v0.1.0/schema.json
+#
+# Patent Novelty Assessment - EPO Search Report Methodology
+# Evaluates patent claims against prior art using standard EPO X/Y categorization
+#
+title: Patent Novelty Assessment (EPO Methodology)
+description: |
+  Systematic patent novelty analysis following European Patent Office (EPO)
+  search report methodology. Maps independent claim elements against prior art
+  disclosures using X/Y/A categorization to assess novelty and inventive step.
+visibility: public
+tags:
+  - patent
+  - intellectual-property
+  - epo
+  - prior-art
+  - novelty
+schemaVersion: "0.1.0"
+steps:
+  - name: Identify and classify prior art documents
+    description: |
+      Review the provided prior art documents and classify each according to EPO categories:
+      - X: Particularly relevant if taken alone (anticipates claim, destroys novelty)
+      - Y: Particularly relevant if combined with another Y document (obviousness)
+      - A: Background art, defines general state of the art
+      - D: Document cited in the application
+      - E: Earlier application published on or after filing date
+
+      For each document, note the publication date relative to the priority date of the
+      patent application being assessed.
+    proofRequirement: |
+      For each prior art document, provide: document number, publication date,
+      title, and assigned category (X/Y/A/D/E) with justification.
+    resultSchema:
+      type: table
+      columns:
+        - name: document
+          label: Document
+          type: string
+        - name: publicationDate
+          label: Publication Date
+          type: string
+        - name: title
+          label: Title
+          type: string
+        - name: category
+          label: Category
+          type: enum
+          enumValues:
+            - X
+            - Y
+            - A
+            - D
+            - E
+        - name: relevance
+          label: Relevance Summary
+          type: string
+      rendering:
+        displayType: table
+
+  - name: Extract independent claims
+    description: |
+      Identify and extract all independent claims from the patent application.
+      For each independent claim, parse the claim into its constituent technical
+      features/elements. Use the two-part form if applicable:
+      - Preamble: known features acknowledged as prior art
+      - Characterizing portion: novel features (after "characterized in that")
+    proofRequirement: Quote the full text of each independent claim from the patent document.
+    resultSchema:
+      type: array
+      items:
+        type: object
+        properties:
+          claimNumber:
+            type: number
+            description: Claim number
+          claimText:
+            type: string
+            description: Full claim text
+          claimType:
+            type: enum
+            enumValues:
+              - apparatus
+              - method
+              - composition
+              - use
+          technicalFeatures:
+            type: array
+            description: List of technical feature elements
+            items:
+              type: string
+
+  - name: Map claim elements to prior art disclosures
+    description: |
+      For each technical feature of each independent claim, search the prior art
+      documents for corresponding disclosures. Create a claim-element mapping matrix
+      showing which prior art documents disclose each feature.
+
+      Apply EPO assessment criteria:
+      - Novelty (Art. 54 EPC): A claim lacks novelty if ALL features are disclosed
+        in a SINGLE prior art document (implicit or explicit disclosure)
+      - Inventive step (Art. 56 EPC): Starting from closest prior art, determine if
+        the distinguishing features would be obvious to a skilled person
+    proofRequirement: |
+      For each feature mapping, quote the specific passage from the prior art
+      document that discloses the feature. Include paragraph/column numbers.
+    resultSchema:
+      type: table
+      columns:
+        - name: claimNumber
+          label: Claim
+          type: number
+        - name: feature
+          label: Technical Feature
+          type: string
+        - name: priorArtDoc
+          label: Prior Art
+          type: string
+        - name: disclosure
+          label: Disclosure Location
+          type: string
+        - name: disclosureType
+          label: Type
+          type: enum
+          enumValues:
+            - explicit
+            - implicit
+            - not found
+      rendering:
+        displayType: table
+        tableConfig:
+          showRowNumbers: true
+
+  - name: Determine novelty and inventive step assessment
+    description: |
+      Based on the claim-element mapping, provide a novelty and inventive step
+      assessment for each independent claim following EPO examination guidelines:
+
+      For NOVELTY assessment:
+      - Novel: No single document discloses all features
+      - Lacks novelty: At least one X-category document anticipates all features
+
+      For INVENTIVE STEP assessment (if novel):
+      - Apply problem-solution approach:
+        1. Determine closest prior art
+        2. Establish objective technical problem
+        3. Assess if solution would be obvious to skilled person
+      - Consider if Y-category combination makes claim obvious
+    proofRequirement: |
+      Explain the reasoning for each assessment, citing specific claim features
+      and prior art disclosures that support the conclusion.
+    resultSchema:
+      type: array
+      items:
+        type: object
+        properties:
+          claimNumber:
+            type: number
+          noveltyAssessment:
+            type: enum
+            enumValues:
+              - novel
+              - lacks novelty
+          inventiveStepAssessment:
+            type: enum
+            enumValues:
+              - inventive
+              - obvious
+              - not assessed (lacks novelty)
+          closestPriorArt:
+            type: string
+            description: Document identifier of closest prior art
+          distinguishingFeatures:
+            type: array
+            items:
+              type: string
+          reasoning:
+            type: string
+
+  - name: Generate overall assessment summary
+    description: |
+      Provide an overall assessment of the patent application's patentability
+      based on the claim analysis. Include:
+      - Summary of X and Y category documents
+      - Assessment of each independent claim
+      - Recommendations for claim amendments if applicable
+      - Overall patentability opinion
+    proofRequirement: Reference the specific claim analyses that support the overall conclusion.
+    resultSchema:
+      type: object
+      properties:
+        overallAssessment:
+          type: enum
+          enumValues:
+            - patentable
+            - patentable with amendments
+            - not patentable
+        xCategoryCount:
+          type: number
+          description: Number of X-category prior art documents
+        yCategoryCount:
+          type: number
+          description: Number of Y-category prior art documents
+        novelClaimsCount:
+          type: number
+          description: Number of independent claims assessed as novel
+        inventiveClaimsCount:
+          type: number
+          description: Number of novel claims assessed as inventive
+        recommendedAmendments:
+          type: array
+          items:
+            type: string
+        summary:
+          type: string
+          description: Overall summary of patentability analysis
