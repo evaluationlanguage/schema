@@ -303,7 +303,6 @@
             "pieChart",
             "lineChart",
             "badge",
-            "tree",
             "json"
           ],
           "description": "How to display the result data",
