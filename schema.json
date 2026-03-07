@@ -291,6 +291,15 @@
       "type": "object",
       "description": "Hints for UI rendering of results",
       "additionalProperties": false,
+      "x-display-type-matrix": {
+        "string": ["text", "badge", "json"],
+        "number": ["text", "badge"],
+        "boolean": ["text", "badge"],
+        "enum": ["text", "badge", "list"],
+        "object": ["text", "json", "table", "barChart", "pieChart"],
+        "array": ["text", "list", "table", "json", "barChart", "pieChart", "lineChart"],
+        "table": ["table", "matrix", "json", "barChart", "lineChart"]
+      },
       "properties": {
         "displayType": {
           "type": "string",
