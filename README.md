@@ -22,14 +22,30 @@ The schema is available at `schema.json` and defines two main document types:
 Reference the schema in your YAML/JSON documents:
 
 ```yaml
-# yaml-language-server: $schema=https://raw.githubusercontent.com/evaluationlanguage/schema/v0.1.0/schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/evaluationlanguage/schema/v0.2.0/schema.json
 title: My Evaluation Instructions
-schemaVersion: "0.1.0"
+schemaVersion: "0.2.0"
 steps:
   - name: Verify claim
     description: Check if the claim is supported by evidence
     proofRequirement: Quote the relevant source text
 ```
+
+## Schema Features
+
+### Result Types
+
+Instructions steps support structured result schemas with these types: `string`, `number`, `boolean`, `enum`, `object`, `array`, `table`.
+
+### v0.2.0 Additions
+
+- **enumColors** - Custom hex color mapping for enum values (ResultSchema, FieldSchema, ColumnSchema)
+- **multiSelect** - Multi-selection mode for enum types
+- **predefinedItems** - Predefined items for checklist and scored list patterns
+- **scoreMin / scoreMax** - Score range bounds for scored lists
+- **proofType** - Step-level proof type constraint (`text`, `photo`, `file`, `any`)
+
+All v0.2.0 additions are optional fields, making the schema fully backwards-compatible with v0.1.0 documents.
 
 ## Examples
 
