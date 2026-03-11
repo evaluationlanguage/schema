@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/evaluationlanguage/schema/v0.1.0/schema.json",
+  "$id": "https://raw.githubusercontent.com/evaluationlanguage/schema/v0.2.0/schema.json",
   "title": "EvaL Schema",
-  "description": "EvaL (Evaluation Language) Schema v0.1.0 - Unified schema for evaluation instructions and results with attachment support",
+  "description": "EvaL (Evaluation Language) Schema v0.2.0 - Unified schema for evaluation instructions and results with attachment support",
 
   "$defs": {
     "Checksum": {
@@ -164,6 +164,13 @@
           "x-ui-widget": "toggle",
           "x-ui-help": "Enable to signal the AI should pause and ask the user for input",
           "x-ui-order": 5
+        },
+        "proofType": {
+          "type": "string",
+          "enum": ["text", "photo", "file", "any"],
+          "description": "Type of proof to collect for this step",
+          "x-ui-widget": "select",
+          "x-ui-order": 6
         }
       }
     },
@@ -206,7 +213,7 @@
         "required": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "Required field names for object type"
+          "description": "Which properties are required (names from 'properties')"
         },
         "items": {
           "$ref": "#/$defs/FieldSchema",
@@ -220,6 +227,38 @@
         "rendering": {
           "$ref": "#/$defs/RenderingHint",
           "description": "How to render this result in the UI"
+        },
+        "enumColors": {
+          "type": "object",
+          "description": "Custom color mapping for enum values (key: enum value, value: hex color)",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          }
+        },
+        "multiSelect": {
+          "type": "boolean",
+          "description": "Allow selecting multiple enum values (default: single selection)"
+        },
+        "predefinedItems": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Predefined items for checklist or scored list patterns",
+          "minItems": 1,
+          "maxItems": 50,
+          "uniqueItems": true
+        },
+        "scoreMin": {
+          "type": "integer",
+          "description": "Minimum score value (default: 1). Must be less than scoreMax when both are specified.",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "scoreMax": {
+          "type": "integer",
+          "description": "Maximum score value (default: 5). Must be greater than scoreMin when both are specified.",
+          "minimum": 1,
+          "maximum": 100
         }
       }
     },
@@ -249,9 +288,26 @@
           "description": "Nested properties for object type",
           "additionalProperties": { "$ref": "#/$defs/FieldSchema" }
         },
+        "required": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Which properties must be present in the result (names from 'properties')"
+        },
         "items": {
           "$ref": "#/$defs/FieldSchema",
           "description": "Item schema for array type"
+        },
+        "enumColors": {
+          "type": "object",
+          "description": "Custom color mapping for enum values (key: enum value, value: hex color)",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          }
+        },
+        "multiSelect": {
+          "type": "boolean",
+          "description": "Allow selecting multiple enum values (default: single selection)"
         }
       }
     },
@@ -283,6 +339,14 @@
           "type": "array",
           "items": { "type": "string" },
           "description": "Allowed values for enum columns"
+        },
+        "enumColors": {
+          "type": "object",
+          "description": "Custom color mapping for enum values (key: enum value, value: hex color)",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          }
         }
       }
     },
@@ -487,7 +551,7 @@
         },
         "schemaVersion": {
           "type": "string",
-          "const": "0.1.0",
+          "const": "0.2.0",
           "x-ui-hidden": true
         },
         "steps": {
@@ -751,7 +815,7 @@
         },
         "schemaVersion": {
           "type": "string",
-          "const": "0.1.0",
+          "const": "0.2.0",
           "description": "Schema version",
           "x-ui-hidden": true
         },
